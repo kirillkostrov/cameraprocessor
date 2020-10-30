@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="processButton" type="id" />
+    <item name="inputNumber2" type="id" />
+    <item name="inputNumber1" type="id" />
+    <item name="inputNumber3" type="id" />
+    <item name="textureView" type="id" />
+</resources>
