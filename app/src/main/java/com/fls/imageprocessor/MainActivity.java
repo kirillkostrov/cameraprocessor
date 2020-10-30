@@ -2,6 +2,7 @@ package com.fls.imageprocessor;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
@@ -23,6 +24,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -184,11 +186,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void onProcessClick(View view) {
         Bitmap resultBitmap = cameraPreview.getBitmap();
-        int x = Integer.parseInt(valueX.getText().toString());
-        int y = Integer.parseInt(valueY.getText().toString());
-        int z = Integer.parseInt(valueZ.getText().toString());
 
-        
+        int x = 0;
+        int y = 0;
+        int z = 0;
+
+        try {
+            x = Integer.parseInt(valueX.getText().toString());
+            y = Integer.parseInt(valueY.getText().toString());
+            z = Integer.parseInt(valueZ.getText().toString());
+
+        } catch (NumberFormatException e) {
+            showWarnDialog("All three parameters Z, Y and Z must be entered");
+            return;
+        }
 
         Logic.Run(resultBitmap, x, y, z, new LogicResultCallback() {
             @Override
@@ -198,4 +209,13 @@ public class MainActivity extends AppCompatActivity {
             };
         });
     }
+    private void showWarnDialog(String content) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle(R.string.warn);
+        builder.setIcon(R.drawable.ic_warn);
+        builder.setMessage(content);
+        builder.setNegativeButton(R.string.confirm, null);
+        builder.show();
+    }
+
 }

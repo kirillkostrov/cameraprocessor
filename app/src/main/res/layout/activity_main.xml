@@ -16,9 +16,9 @@
 
     <EditText
         android:id="@+id/inputNumber1"
+        android:inputType="number"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:inputType="number"
         android:hint="X"
         app:layout_constraintBottom_toTopOf="@+id/processButton"
         app:layout_constraintEnd_toStartOf="@id/inputNumber2"

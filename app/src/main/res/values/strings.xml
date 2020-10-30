@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Camera Image Processor</string>
+    <string name="warn">Warning!</string>
+    <string name="confirm">continue</string>
 </resources>
