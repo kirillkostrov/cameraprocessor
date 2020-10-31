@@ -3,6 +3,7 @@ package com.fls.imageprocessor;
 import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
@@ -14,6 +15,8 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
@@ -32,7 +35,7 @@ import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static String LOG_TAG = "ImageProcessor";
+    private static String TAG = "FLSImageProcessor";
     private CameraManager cameraManager;
     private CameraDevice cameraDevice;
     private String cameraId;
@@ -50,8 +53,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         valueX = findViewById(R.id.inputNumber1);
+        valueX.setText(getIntPreference("X").toString());
+        valueX.addTextChangedListener(onChangeListener);
+
         valueY = findViewById(R.id.inputNumber2);
+        valueY.setText(getIntPreference("Y").toString());
+        valueY.addTextChangedListener(onChangeListener);
+
         valueZ = findViewById(R.id.inputNumber3);
+        valueZ.setText(getIntPreference("Z").toString());
+        valueZ.addTextChangedListener(onChangeListener);
 
         cameraPreview = findViewById(R.id.textureView);
         cameraPreview.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
@@ -111,19 +122,19 @@ public class MainActivity extends AppCompatActivity {
         public void onOpened(CameraDevice camera) {
             cameraDevice = camera;
             startCameraPreview();
-            Log.i(LOG_TAG, "camera opened: " + cameraDevice.getId());
+            Log.i(TAG, "camera opened: " + cameraDevice.getId());
         }
 
         @Override
         public void onDisconnected(CameraDevice camera) {
             cameraDevice.close();
             cameraDevice = null;
-            Log.i(LOG_TAG, "camera disconnected: " + cameraDevice.getId());
+            Log.i(TAG, "camera disconnected: " + cameraDevice.getId());
         }
 
         @Override
         public void onError(CameraDevice camera, int error) {
-            Log.i(LOG_TAG, "camera failed: " + camera.getId() + " error: " + error);
+            Log.i(TAG, "camera failed: " + camera.getId() + " error: " + error);
         }
     };
 
@@ -217,6 +228,49 @@ public class MainActivity extends AppCompatActivity {
         builder.setMessage(content);
         builder.setNegativeButton(R.string.confirm, null);
         builder.show();
+    }
+
+    private TextWatcher onChangeListener = new TextWatcher() {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            saveAll();
+        }
+    };
+
+    private void saveAll() {
+        Integer valX = tryParseInt(valueX.getText().toString());
+        if (valX != null) setIntPreference("X", valX);
+        Integer valY = tryParseInt(valueY.getText().toString());
+        if (valY != null) setIntPreference("Y", valY);
+        Integer valZ = tryParseInt(valueZ.getText().toString());
+        if (valZ != null) setIntPreference("Z", valZ);
+    }
+
+    private Integer getIntPreference(String name) {
+        SharedPreferences prefs = getSharedPreferences(TAG, 0);
+        return prefs.getInt(name, 0);
+    }
+
+    private void setIntPreference(String name, int value) {
+        SharedPreferences.Editor editor = getSharedPreferences(TAG, 0).edit();
+        editor.putInt(name, value);
+        editor.commit();
+    }
+
+    private Integer tryParseInt(String text) {
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
 }
