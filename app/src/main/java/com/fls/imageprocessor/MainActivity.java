@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
     private void startCamera() {
         try {
             cameraId = getCameraName();
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 cameraManager.openCamera(cameraId, cameraStateCallback, null);
             } else {
-
+                Toast.makeText(this, "No camera permission.", Toast.LENGTH_LONG).show();
             }
 
         } catch (CameraAccessException e) {
@@ -99,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == 10) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera(); // запускаем активность с камерой (ну или фрагмент)
+                startCamera();
             }
         }
     }
@@ -204,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
         Logic.Run(resultBitmap, x, y, z, new LogicResultCallback() {
             @Override
             public void OnResult(LogicResult result) {
-                String output = String.format("Returned result %d with probability %.4f", result.result, result.probability);
+                String output = String.format(getString(R.string.resut_toast_text), result.result, result.probability);
                 Toast.makeText(MainActivity.this, output, Toast.LENGTH_SHORT).show();
             };
         });

@@ -2,4 +2,5 @@
     <string name="app_name">Camera Image Processor</string>
     <string name="warn">Warning!</string>
     <string name="confirm">continue</string>
+    <string name="resut_toast_text">Returned result %d with probability %.4f</string>
 </resources>
