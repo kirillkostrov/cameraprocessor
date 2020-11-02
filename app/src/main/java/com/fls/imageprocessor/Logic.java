@@ -3,6 +3,7 @@ package com.fls.imageprocessor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Build;
+import android.util.Half;
 
 import androidx.annotation.RequiresApi;
 
@@ -12,14 +13,14 @@ public class Logic {
 
         long width = bitmap.getWidth();
         long height = bitmap.getHeight();
-        Color pixelColor = bitmap.getColor(Math.round(width / 2), Math.round(height / 2));
+        long pixel = bitmap.getPixel(Math.round(width / 2), Math.round(height / 2));
+
 
         /* DO SOMETHING */
         // Commented to support lower API levels
         //LogicResult result = new LogicResult(Color.pack(pixelColor.red(), pixelColor.green(), pixelColor.blue()), 0.5);
-        LogicResult result = new LogicResult(123456, 0.5);
+        LogicResult result = new LogicResult(pixel, 0.5);
         resultCallback.OnResult(result);
     }
-
 }
 

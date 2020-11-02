@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText valueZ;
 
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
+//    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
