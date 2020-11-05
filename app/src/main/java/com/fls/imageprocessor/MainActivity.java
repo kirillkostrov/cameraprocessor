@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -158,33 +159,26 @@ public class MainActivity extends AppCompatActivity {
 
         showProgressDialog();
 
-        taskHandler = new Handler();
+        taskHandler = new Handler(Looper.myLooper());
 
         int finalX = x;
         int finalY = y;
         int finalZ = z;
 
-        processTask = new Runnable() {
-            @Override
-            public void run() {
-                Logic.Run(resultBitmap, finalX, finalY, finalZ, new LogicResultCallback() {
-                    @Override
-                    public void OnResult(LogicResult result) {
-                        String output = String.format(getString(R.string.resut_toast_text), result.result, result.probability);
-
-                        if (result.bitmap != null)
-                            resultView.setImageBitmap(result.bitmap);
-                        else
-                            resultView.setImageResource(R.drawable.ic_noimage_foreground);
-
-                        hideProgressDialog();
-                        Toast.makeText(MainActivity.this, output, Toast.LENGTH_LONG).show();
-                    }
-                });
+        processTask = () -> Logic.Run(resultBitmap, finalX, finalY, finalZ, result -> {
+            String output = String.format(getString(R.string.resut_toast_text), result.result, result.probability);
+            if (result.bitmap != null) {
+                resultView.setImageBitmap(result.bitmap);
             }
-        };
+            else {
+                resultView.setImageResource(R.drawable.ic_noimage_foreground);
+            }
+            hideProgressDialog();
+            Toast.makeText(MainActivity.this, output, Toast.LENGTH_LONG).show();
+        });
 
-        taskHandler.postDelayed(processTask, 5000);
+        //TODO: Don't forget to remove delay after debug
+        taskHandler.postDelayed(processTask, 0);
     }
 
     private void showProgressDialog() {
