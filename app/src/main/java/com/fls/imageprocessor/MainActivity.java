@@ -1,52 +1,51 @@
 package com.fls.imageprocessor;
 
 import android.Manifest;
-import android.content.Context;
+import android.app.Activity;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.SurfaceTexture;
-import android.hardware.camera2.CameraAccessException;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CaptureRequest;
-import android.os.Build;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
-import android.view.Surface;
-import android.view.TextureView;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
 
-import java.util.Arrays;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static String TAG = "FLSImageProcessor";
-    private CameraManager cameraManager;
-    private CameraDevice cameraDevice;
-    private String cameraId;
-    CameraCaptureSession cameraCaptureSession;
-    TextureView cameraPreview;
+    private static final String TAG = "FLSImageProcessor";
+    private static final int CAMERA_REQUEST = 1111;
+    ImageView resultView;
+
+    private Bitmap capturedBitmap;
+    String currentPhotoPath;
     private EditText valueX;
     private EditText valueY;
     private EditText valueZ;
 
+    private ProgressDialog progressDialog;
+    private Handler taskHandler;
+    private Runnable processTask;
 
-//    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -64,130 +63,71 @@ public class MainActivity extends AppCompatActivity {
         valueZ.setText(getIntPreference("Z").toString());
         valueZ.addTextChangedListener(onChangeListener);
 
-        cameraPreview = findViewById(R.id.textureView);
-        cameraPreview.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-            @Override
-            public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-                checkPermission();
-                cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-                startCamera();
-            }
+        resultView = findViewById(R.id.textureView);
 
-            @Override
-            public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
-            }
+        checkPermission();
+    }
 
-            @Override
-            public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
-                return false;
-            }
+    private File createImageFile() throws IOException {
 
-            @Override
-            public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,
+                ".jpg",
+                storageDir
+        );
+
+        currentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+
             }
-        });
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.android.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, CAMERA_REQUEST);
+            }
+        }
     }
 
 
-    private void startCamera() {
-        try {
-            cameraId = getCameraName();
-            if (cameraId == null) {
-                Toast.makeText(this, "No camera found.", Toast.LENGTH_LONG).show();
-                return;
-            }
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                cameraManager.openCamera(cameraId, cameraStateCallback, null);
-            } else {
-                Toast.makeText(this, "No camera permission.", Toast.LENGTH_LONG).show();
-            }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
+        if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
+            try {
+                capturedBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), Uri.fromFile(new File(currentPhotoPath)));
+                processImage(capturedBitmap);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == 10) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera();
+                dispatchTakePictureIntent();
             }
         }
     }
 
-    private CameraDevice.StateCallback cameraStateCallback = new CameraDevice.StateCallback() {
-
-        @Override
-        public void onOpened(CameraDevice camera) {
-            cameraDevice = camera;
-            startCameraPreview();
-            Log.i(TAG, "camera opened: " + cameraDevice.getId());
-        }
-
-        @Override
-        public void onDisconnected(CameraDevice camera) {
-            cameraDevice.close();
-            cameraDevice = null;
-            Log.i(TAG, "camera disconnected: " + cameraDevice.getId());
-        }
-
-        @Override
-        public void onError(CameraDevice camera, int error) {
-            Log.i(TAG, "camera failed: " + camera.getId() + " error: " + error);
-        }
-    };
-
-    private void startCameraPreview() {
-
-        SurfaceTexture texture = cameraPreview.getSurfaceTexture();
-        texture.setDefaultBufferSize(1920,1080);
-        Surface surface = new Surface(texture);
-
-        try {
-            final CaptureRequest.Builder builder =
-                    cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-
-            builder.addTarget(surface);
-
-            cameraDevice.createCaptureSession(Arrays.asList(surface),
-                    new CameraCaptureSession.StateCallback() {
-
-                        @Override
-                        public void onConfigured(CameraCaptureSession session) {
-                            cameraCaptureSession = session;
-                            try {
-                                cameraCaptureSession.setRepeatingRequest(builder.build(), null, null);
-                            } catch (CameraAccessException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        @Override
-                        public void onConfigureFailed(CameraCaptureSession session) {
-                        }
-                    }, null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-
-    private String getCameraName() throws CameraAccessException {
-        /* we will try to get first back-facing camera, if none we return first available */
-        String[] cameras = cameraManager.getCameraIdList();
-
-        for (String cameraID : cameras) {
-            if (cameraManager.getCameraCharacteristics(cameraID).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK)
-                return cameraID;
-        }
-
-        return cameras.length > 0 ? cameras[0] : null;
-    }
-
     private void checkPermission() {
-        String[] deniedPermission = PermissionUtil.getDeniedPermissions(this, new String[] {
+        String[] deniedPermission = PermissionUtil.getDeniedPermissions(this, new String[]{
                 Manifest.permission.CAMERA,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
         });
@@ -197,7 +137,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onProcessClick(View view) {
-        Bitmap resultBitmap = cameraPreview.getBitmap();
+        dispatchTakePictureIntent();
+    }
+
+    private void processImage(Bitmap resultBitmap) {
 
         int x = 0;
         int y = 0;
@@ -209,28 +152,70 @@ public class MainActivity extends AppCompatActivity {
             z = Integer.parseInt(valueZ.getText().toString());
 
         } catch (NumberFormatException e) {
-            showWarnDialog("All three parameters Z, Y and Z must be entered");
+            showWarnDialog();
             return;
         }
 
-        Logic.Run(resultBitmap, x, y, z, new LogicResultCallback() {
+        showProgressDialog();
+
+        taskHandler = new Handler();
+
+        int finalX = x;
+        int finalY = y;
+        int finalZ = z;
+
+        processTask = new Runnable() {
             @Override
-            public void OnResult(LogicResult result) {
-                String output = String.format(getString(R.string.resut_toast_text), result.result, result.probability);
-                Toast.makeText(MainActivity.this, output, Toast.LENGTH_SHORT).show();
-            };
-        });
+            public void run() {
+                Logic.Run(resultBitmap, finalX, finalY, finalZ, new LogicResultCallback() {
+                    @Override
+                    public void OnResult(LogicResult result) {
+                        String output = String.format(getString(R.string.resut_toast_text), result.result, result.probability);
+
+                        if (result.bitmap != null)
+                            resultView.setImageBitmap(result.bitmap);
+                        else
+                            resultView.setImageResource(R.drawable.ic_noimage_foreground);
+
+                        hideProgressDialog();
+                        Toast.makeText(MainActivity.this, output, Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        };
+
+        taskHandler.postDelayed(processTask, 5000);
     }
-    private void showWarnDialog(String content) {
+
+    private void showProgressDialog() {
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle(getString(R.string.processing_dialog_title));
+        progressDialog.setMessage(getString(R.string.processing_dialog_message));
+
+        progressDialog.setButton(Dialog.BUTTON_NEGATIVE, getString(R.string.cancel), new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                if (taskHandler != null && processTask != null) {
+                    taskHandler.removeCallbacks(processTask);
+                }
+            }
+        });
+        progressDialog.show();
+    }
+
+    private void hideProgressDialog() {
+        progressDialog.dismiss();
+    }
+
+    private void showWarnDialog() {
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setTitle(R.string.warn);
         builder.setIcon(R.drawable.ic_warn);
-        builder.setMessage(content);
+        builder.setMessage(R.string.parameters_validation_failed);
         builder.setNegativeButton(R.string.confirm, null);
         builder.show();
     }
 
-    private TextWatcher onChangeListener = new TextWatcher() {
+    private final TextWatcher onChangeListener = new TextWatcher() {
         @Override
         public void beforeTextChanged(CharSequence s, int start, int count, int after) {
         }
@@ -262,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
     private void setIntPreference(String name, int value) {
         SharedPreferences.Editor editor = getSharedPreferences(TAG, 0).edit();
         editor.putInt(name, value);
-        editor.commit();
+        editor.apply();
     }
 
     private Integer tryParseInt(String text) {

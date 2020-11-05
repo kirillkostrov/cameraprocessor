@@ -19,7 +19,8 @@ public class Logic {
         /* DO SOMETHING */
         // Commented to support lower API levels
         //LogicResult result = new LogicResult(Color.pack(pixelColor.red(), pixelColor.green(), pixelColor.blue()), 0.5);
-        LogicResult result = new LogicResult(pixel, 0.5);
+
+        LogicResult result = new LogicResult(pixel, 0.5, bitmap);
         resultCallback.OnResult(result);
     }
 }

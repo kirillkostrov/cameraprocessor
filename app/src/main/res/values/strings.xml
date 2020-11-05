@@ -3,4 +3,8 @@
     <string name="warn">Warning!</string>
     <string name="confirm">continue</string>
     <string name="resut_toast_text">Returned result %d with probability %.4f</string>
+    <string name="processing_dialog_title">Ожидание</string>
+    <string name="processing_dialog_message">Идёт обработка</string>
+    <string name="cancel">Отмена</string>
+    <string name="parameters_validation_failed">Все три параметра Z, Y и Z должны быть введены</string>
 </resources>
